@@ -1,0 +1,15 @@
+# Ignore all folders beginning with '.'; this will ignore many local config files for most IDEs.
+.*/
+
+# Ignore any VS Code workspace files.
+*.code-workspace
+
+# Ignore the MacOS temp files.
+*.DS_STORE
+
+# Ignore any gcloud files from a deployment push.
+*.gcloud*
+Procfile
+Dockerfile
+*.pem
+*.json
