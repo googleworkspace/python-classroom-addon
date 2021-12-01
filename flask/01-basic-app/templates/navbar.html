@@ -17,16 +17,11 @@ limitations under the License.
 <div class="topnav">
     <ul>
         <li>
-            <a href="{{url_for('index')}}">Home</a>
+            <a href="{{url_for('index')}}">Company Homepage</a>
         </li>
 
         <li style="float: right">
-            {% if session['username'] %}
-            <a style="background-color: #db4437" href="{{url_for('clear_credentials')}}">Logout
-                {{ session['username'] }}</a>
-            {% else %}
-            <a style="background-color: #4285f4" href="{{url_for('authorize')}}">Login</a>
-            {% endif %}
+            <a style="background-color: #4285f4" href="#">Login Placeholder</a>
         </li>
     </ul>
 </div>

@@ -14,8 +14,8 @@ See the License for the specific language governing permissions and
 limitations under the License.
 -->
 
-{% extends "base.html"%}
-{% include 'navbar.html' %}
+{% extends "base.html" %}
+{% include "navbar.html" %}
 {% block content %}
 <div class="container">
     <h3>Welcome to the home page!</h3>
@@ -23,4 +23,8 @@ limitations under the License.
 </div>
 
 <hr>
+
+<a class="rounded-button" href="#" onclick="window.opener.closeAddonIframe();window.close()">
+    Close tab and the add-on iframe
+</a>
 {% endblock %}

@@ -25,24 +25,12 @@ app.secret_key = "REPLACE ME - this value is here as a placeholder."
 
 @app.route("/")
 def index():
-    return flask.render_template("index.html", message="Welcome!")
+    return flask.render_template("index.html", message="You've reached the index page.")
 
 
-@app.route("/authorize")
-def authorize():
-    # Set the username to test the navigation bar.
-    flask.session["username"] = "Test Username"
-
-    return flask.render_template("index.html",
-                                 message="Test username stored in session.")
-
-
-@app.route("/clear")
-def clear_credentials():
-    flask.session.clear()
-
-    return flask.render_template("index.html", message="Session cleared.")
-
+@app.route("/classroom-addon")
+def classroom_addon():
+    return flask.render_template("addon-discovery.html", message="You've reached the addon discovery page.")
 
 if __name__ == "__main__":
     # You have several options for running the web server.
@@ -56,14 +44,14 @@ if __name__ == "__main__":
     # Run the application on a local server, defaults to http://localhost:5000.
     # Note: the OAuth flow requires a TLD, *not* an IP address; "localhost" is
     #   acceptable, but http://127.0.0.1 is not.
-    # app.run(debug=True)
+    app.run(debug=True)
 
     ### OPTION 2: Secure localhost
     # Run the application over HTTPs with a locally stored certificate and key.
     # Defaults to https://localhost:5000.
-    app.run(host="localhost",
-            ssl_context=("localhost.pem", "localhost-key.pem"),
-            debug=True)
+    # app.run(host="localhost",
+    #         ssl_context=("localhost.pem", "localhost-key.pem"),
+    #         debug=True)
 
     ### OPTION 3: Production- or cloud-ready server
     # Start a Gunicorn server, which is appropriate for use in

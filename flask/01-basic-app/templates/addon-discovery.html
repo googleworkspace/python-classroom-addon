@@ -14,24 +14,16 @@ See the License for the specific language governing permissions and
 limitations under the License.
 -->
 
-<!DOCTYPE html>
-<html lang="en">
+{% extends "base.html" %}
+{% include "navbar.html" %}
+{% block content %}
+<div class="container">
+    <h3>Welcome to the home page!</h3>
+    <strong>{{message}}</strong>
+</div>
 
-<head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+<hr>
 
-  <title>Classroom Add-on Example</title>
-
-  <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto">
-  <link rel="stylesheet" href="../static/base-style.css">
-
-  <script src="../static/scripts/addon-utils.js"></script>
-</head>
-
-<body>
-  {% block content %}
-  {% endblock %}
-</body>
-
-</html>
+<a class="rounded-button" href="#" onclick="openWebsiteInNewTab()">Visit our website</a>
+<a class="rounded-button" href="#" onclick="closeAddonIframe()">Close add-on iframe</a>
+{% endblock %}
