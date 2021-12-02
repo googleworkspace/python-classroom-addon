@@ -45,13 +45,13 @@ Enable the following in the API Library:
 
 1.  Install [Python 3.7+](https://www.python.org/downloads/) and ensure that `pip` is available:
 
-    ```shell
+    ```posix-terminal
     python -m ensurepip --upgrade
     ```
 
 1.  Clone this repository and `cd` into the root project directory:
 
-    ```shell
+    ```posix-terminal
     git clone https://github.com/<org>/<repo>/
     cd <repo>
     ```
@@ -59,7 +59,7 @@ Enable the following in the API Library:
 1.  *(Optional, but recommended!)* Set up and activate a new Python virtual environment in
 the <repo> directory:
 
-    ```shell
+    ```posix-terminal
     python3 -m venv .classroom-addon-env
     source .classroom-addon-env/bin/activate
     ```
@@ -68,13 +68,13 @@ the <repo> directory:
 
 1.  `cd` into an example directory:
 
-    ```shell
+    ```posix-terminal
     cd flask/01-basic-app
     ```
 
 1.  Install the required libraries using `pip`:
 
-    ```shell
+    ```posix-terminal
     pip install -r requirements.txt
     ```
 
@@ -88,6 +88,12 @@ example, to run the web app on `localhost`:
 
         # Run the application on http://localhost:5000.
         app.run(debug=True)
+    ```
+
+1.  Launch the server by running the `main.py` file:
+
+    ```posix-terminal
+    python main.py
     ```
 
 1.  To load your app, either open the app in your browser or click the **Add-ons** button when creating an Assignment in [Google Classroom](https://classroom.google.com).

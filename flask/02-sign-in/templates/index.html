@@ -14,39 +14,17 @@ See the License for the specific language governing permissions and
 limitations under the License.
 -->
 
-{% extends "base.html"%}
-{% include 'navbar.html' %}
+{% extends "base.html" %}
+{% include "navbar.html" %}
 {% block content %}
 <div class="container">
     <h3>Welcome to the home page!</h3>
     <strong>{{message}}</strong>
-
-    <hr>
-
-    From here you can:
-    <ul>
-        <li>
-            <a href="{{url_for('test_api_request', request_type='courses')}}">Test a Classroom API request</a>
-            <br>This will submit an API request and display a JSON response.
-            <br>You should go through the authorization flow if there are no stored credentials.</li>
-        <li><a href="{{ url_for('revoke') }}">Revoke credentials</a>
-            <br>This will force users to allow your app to access their account again via the OAuth consent
-            screen.</li>
-        <li><a href="{{ url_for('clear_credentials') }}">Clear session credentials</a>
-            <br>This will clear credentials from the current session.
-            <br>You will have to reauthorize to issue any API requests.</li>
-        <li><a href="#" id="close">Close the iframe</a>
-            <br>Only applicable if loaded in the Classroom Add-ons iframe.</li>
-    </ul>
-
-    <script>
-        document.querySelector('#close')
-            .addEventListener('click', () => {
-                window.parent.postMessage({
-                    type: 'Classroom',
-                    action: 'closeIframe',
-                }, '*');
-            });
-    </script>
 </div>
+
+<hr>
+
+<a class="rounded-button" href="#" onclick="window.opener.closeAddonIframe();window.close()">
+    Close tab and the add-on iframe
+</a>
 {% endblock %}

@@ -25,12 +25,28 @@ app.secret_key = "REPLACE ME - this value is here as a placeholder."
 
 @app.route("/")
 def index():
-    return flask.render_template("index.html", message="You've reached the index page.")
+    """
+    Render the index page from the "index.html" template. This is meant to act
+    as a facsimile of a company's home page.
+    The Add-on Discovery URL should be set to the /classroom-addon route below.
+    """
+
+    return flask.render_template("index.html",
+                                 message="You've reached the index page.")
 
 
 @app.route("/classroom-addon")
 def classroom_addon():
-    return flask.render_template("addon-discovery.html", message="You've reached the addon discovery page.")
+    """
+    Renders the addon discovery page from the "addon-discovery.html" template.
+    This is meant to be the landing page when opening the web app in the
+    Classroom add-on iframe.
+    """
+
+    return flask.render_template(
+        "addon-discovery.html",
+        message="You've reached the addon discovery page.")
+
 
 if __name__ == "__main__":
     # You have several options for running the web server.

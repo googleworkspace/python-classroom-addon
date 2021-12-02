@@ -19,9 +19,14 @@ limitations under the License.
 <div class="container">
     <h2>Authorization Required</h2>
     <hr>
-    <!-- Developer note: if you have *never* seen the user before, they'll need to authorize your app.
-        It's most reliable to do so in a popup due to add-ons being presented in an iframe. -->
-    <a target="popup" id="auth-user" href="{{ url_for('authorize') }}">
+    <!--
+        Developer note: if you have *never* seen the user before, they'll need to
+        authorize your app. It's most reliable to do so in a popup due to add-ons
+        being presented in an iframe.
+        Note that this link also calls a function to close the iframe; since we
+        won't know when the user has finished the authorization flow, we won't
+        be able to reload the addon with their correct credentials. -->
+    <a target="popup" onclick="closeAddonIframe()" href="{{ url_for('authorize') }}">
         <img src="../static/btn_google_signin_dark_normal_web.png" alt="Authorize the user">
     </a>
     <br>This will immediately start the authorization flow in a popup.
@@ -29,14 +34,4 @@ limitations under the License.
     have revoked their credentials.
     <br>Once complete, close the popup and use the other links below.
 </div>
-
-<script>
-    document.querySelector('#auth-user')
-        .addEventListener('click', () => {
-            window.parent.postMessage({
-                type: 'Classroom',
-                action: 'closeIframe',
-            }, '*');
-        });
-</script>
 {% endblock %}

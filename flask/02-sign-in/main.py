@@ -46,31 +46,37 @@ CLIENT_SECRETS_FILE = "client_secret.json"
 # OAuth Consent Screen: https://console.cloud.google.com/apis/credentials/consent
 SCOPES = [
     "https://www.googleapis.com/auth/userinfo.profile",
-    "https://www.googleapis.com/auth/userinfo.email",
-    "https://www.googleapis.com/auth/classroom.courses.readonly",
-    "https://www.googleapis.com/auth/classroom.addons.student",
-    "https://www.googleapis.com/auth/classroom.addons.teacher",
+    "https://www.googleapis.com/auth/userinfo.email"
 ]
-CLASSROOM_API_SERVICE_NAME = "classroom"
-CLASSROOM_API_VERSION = "v1"
-
-# An API key in your GCP project's credentials:
-# https://console.cloud.google.com/apis/credentials.
-GOOGLE_API_KEY = os.environ.get("GOOGLE_API_KEY")
 
 
 @app.route("/")
 def index():
     """
-    Checks if a user is signed in. If so, renders the main page from the "index.html" template.
+    Render the index page from the "index.html" template. This is meant to act
+    as a facsimile of a company's home page.
+    The Add-on Discovery URL should be set to the /classroom-addon route below.
+    """
+
+    return flask.render_template("index.html",
+                                 message="You've reached the index page.")
+
+
+@app.route("/classroom-addon")
+def classroom_addon():
+    """
+    Checks if a user is signed in. If so, renders the addon discovery page from
+    the "addon-discovery.html" template. This is meant to be the landing page
+    when opening the web app in the Classroom add-on iframe.
     Otherwise, renders the "authorization.html" template.
     """
 
     if "credentials" not in flask.session:
         return flask.render_template("authorization.html")
 
-    return flask.render_template("index.html",
-                                 message="This is the index page.")
+    return flask.render_template(
+        "addon-discovery.html",
+        message="You've reached the addon discovery page.")
 
 
 @app.route("/test/<request_type>")
@@ -79,7 +85,7 @@ def test_api_request(request_type="username"):
     Tests an API request, rendering the result in the "show-api-query-result.html" template.
 
     Args:
-        request_type: The type of API request to test. Can be "username" or "courses".
+        request_type: The type of API request to test. Currently only "username" is supported.
     """
 
     if "credentials" not in flask.session:
@@ -101,18 +107,6 @@ def test_api_request(request_type="username"):
                 user_info_service.userinfo().get().execute().get("name"))
 
         fetched_data = flask.session.get("username")
-
-    elif request_type == "courses":
-        classroom_service = googleapiclient.discovery.build(
-            CLASSROOM_API_SERVICE_NAME,
-            CLASSROOM_API_VERSION,
-            credentials=credentials,
-            discoveryServiceUrl=
-            f"https://classroom.googleapis.com/$discovery/rest?labels=ADD_ONS_ALPHA&key={GOOGLE_API_KEY}"
-        )
-
-        fetched_data = classroom_service.courses().list(
-            pageSize=10).execute().get("courses", [])
 
     # Save credentials back to session in case access token was refreshed.
     # ACTION ITEM: In a production app, you likely want to save these
@@ -163,7 +157,7 @@ def callback():
     the user's credentials, including the access token, refresh token, and allowed scopes.
     """
 
-    # Specify the state when creating the flow in the callback so that it can
+    # Specify the state when creating the flow in the callback so that it can be
     # verified in the authorization server response.
     state = flask.session["state"]
 
@@ -198,7 +192,7 @@ def revoke():
     """
 
     if "credentials" not in flask.session:
-        return flask.render_template("index.html",
+        return flask.render_template("addon-discovery.html",
                                      message="You need to authorize before " +
                                      "attempting to revoke credentials.")
 
@@ -228,9 +222,7 @@ def clear_credentials():
 
     clear_credentials_in_session()
 
-    return flask.render_template(
-        "index.html",
-        message="Your credentials have been cleared; you are logged out.")
+    return flask.render_template("signed-out.html")
 
 
 def clear_credentials_in_session():

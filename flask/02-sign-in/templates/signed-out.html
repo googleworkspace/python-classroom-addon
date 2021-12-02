@@ -14,23 +14,16 @@ See the License for the specific language governing permissions and
 limitations under the License.
 -->
 
-<!DOCTYPE html>
-<html lang="en">
+{% extends "base.html"%}
+{% block headcontent %}
+<meta http-equiv="refresh" content="3;url={{url_for('classroom_addon')}}" />
+{% endblock %}
 
-<head>
-  <meta charset="utf-8">
-
-  <title>Classroom Add-on Example</title>
-
-  <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto">
-  <link rel="stylesheet" href="../static/base-style.css">
-
-  <script src="../static/scripts/addon-utils.js"></script>
-</head>
-
-<body>
-  {% block content %}
-  {% endblock %}
-</body>
-
-</html>
+{% block content %}
+<div class="container">
+    <h2>Sign-out Complete!</h2>
+    <hr>
+    Your credentials have been cleared; you are logged out.
+    You will be redirected to the authorization page in 5 seconds.
+</div>
+{% endblock %}
