@@ -13,3 +13,4 @@ Procfile
 Dockerfile
 *.pem
 *.json
+*.sqlite
