@@ -116,7 +116,7 @@ def test_api_request(request_type="username"):
     # Render the results of the API call.
     return flask.render_template(
         "show-api-query-result.html",
-        data=json.dumps(fetched_data, indent=2),  #flask.jsonify(courses),
+        data=json.dumps(fetched_data, indent=2),
         data_title=request_type)
 
 

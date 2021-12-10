@@ -23,9 +23,6 @@ limitations under the License.
 
         {% if session['username'] %}
         <li>
-            <a href="{{url_for('test_api_request', request_type='courses')}}">Get Courses</a>
-        </li>
-        <li>
             <a href="{{url_for('test_api_request', request_type='username')}}">Get Username</a>
         </li>
         {% endif %}

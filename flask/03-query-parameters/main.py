@@ -48,17 +48,8 @@ CLIENT_SECRETS_FILE = "client_secret.json"
 # OAuth Consent Screen: https://console.cloud.google.com/apis/credentials/consent
 SCOPES = [
     "https://www.googleapis.com/auth/userinfo.profile",
-    "https://www.googleapis.com/auth/userinfo.email",
-    "https://www.googleapis.com/auth/classroom.courses.readonly",
-    "https://www.googleapis.com/auth/classroom.addons.student",
-    "https://www.googleapis.com/auth/classroom.addons.teacher",
+    "https://www.googleapis.com/auth/userinfo.email"
 ]
-CLASSROOM_API_SERVICE_NAME = "classroom"
-CLASSROOM_API_VERSION = "v1"
-
-# An API key in your GCP project's credentials:
-# https://console.cloud.google.com/apis/credentials.
-GOOGLE_API_KEY = os.environ.get("GOOGLE_API_KEY")
 
 # Point to a database file in the project root.
 DATABASE_FILE_NAME = os.path.join(os.path.abspath(os.path.dirname(__file__)),
@@ -180,7 +171,7 @@ def test_api_request(request_type="username"):
     Tests an API request, rendering the result in the "show-api-query-result.html" template.
 
     Args:
-        request_type: The type of API request to test. Can be "username" or "courses".
+        request_type: The type of API request to test. Currently only "username" is supported.
     """
 
     if "credentials" not in flask.session:
@@ -203,18 +194,6 @@ def test_api_request(request_type="username"):
 
         fetched_data = flask.session.get("username")
 
-    elif request_type == "courses":
-        classroom_service = googleapiclient.discovery.build(
-            CLASSROOM_API_SERVICE_NAME,
-            CLASSROOM_API_VERSION,
-            credentials=credentials,
-            discoveryServiceUrl=
-            f"https://classroom.googleapis.com/$discovery/rest?labels=ADD_ONS_ALPHA&key={GOOGLE_API_KEY}"
-        )
-
-        fetched_data = classroom_service.courses().list(
-            pageSize=10).execute().get("courses", [])
-
     # Save credentials in case access token was refreshed.
     flask.session["credentials"] = credentials_to_dict(credentials)
     save_user_credentials(credentials)
@@ -222,7 +201,7 @@ def test_api_request(request_type="username"):
     # Render the results of the API call.
     return flask.render_template(
         "show-api-query-result.html",
-        data=json.dumps(fetched_data, indent=2),  #flask.jsonify(courses),
+        data=json.dumps(fetched_data, indent=2),
         data_title=request_type)
 
 
@@ -384,6 +363,7 @@ def save_user_credentials(credentials=None, user_info=None):
 
     existing_user = get_credentials_from_storage(
         flask.session.get("login_hint"))
+
     if existing_user:
         if user_info:
             existing_user.id = user_info.get("id")

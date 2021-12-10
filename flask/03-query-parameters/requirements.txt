@@ -1,5 +1,6 @@
 Flask==2.0.2
-google_api_python_client==2.31.0
+Flask_SQLAlchemy==2.5.1
+google_api_python_client==2.33.0
 google_auth_oauthlib==0.4.6
 protobuf==3.19.1
 requests==2.26.0
