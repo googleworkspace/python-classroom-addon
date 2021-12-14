@@ -199,10 +199,9 @@ def test_api_request(request_type="username"):
     save_user_credentials(credentials)
 
     # Render the results of the API call.
-    return flask.render_template(
-        "show-api-query-result.html",
-        data=json.dumps(fetched_data, indent=2),
-        data_title=request_type)
+    return flask.render_template("show-api-query-result.html",
+                                 data=json.dumps(fetched_data, indent=2),
+                                 data_title=request_type)
 
 
 @app.route("/authorize")
@@ -213,7 +212,9 @@ def authorize():
 
     # Create flow instance to manage the OAuth 2.0 Authorization Grant Flow steps.
     flow = google_auth_oauthlib.flow.Flow.from_client_secrets_file(
-        CLIENT_SECRETS_FILE, scopes=SCOPES)
+        CLIENT_SECRETS_FILE,
+        scopes=SCOPES,
+    )
 
     # The URI created here must exactly match one of the authorized redirect URIs
     # for the OAuth 2.0 client, which you configured in the API Console. If this
@@ -226,7 +227,12 @@ def authorize():
         # re-prompting the user for permission. Recommended for web server apps.
         access_type="offline",
         # Enable incremental authorization. Recommended as a best practice.
-        include_granted_scopes="true")
+        include_granted_scopes="true",
+        # The user will automatically be selected if we have the login_hint.
+        login_hint=flask.session.get("login_hint"),
+        # If we don't have login_hint, passing hd will reduce the list of
+        # accounts in the account chooser to only those with the same domain.
+        hd=flask.session.get("hd"))
 
     # Store the state so the callback can verify the auth server response.
     flask.session["state"] = state
@@ -258,7 +264,7 @@ def callback():
     credentials = flow.credentials
     flask.session["credentials"] = credentials_to_dict(credentials)
 
-    # The flow is complete! We'll use the credentials to fetch the username.
+    # The flow is complete! We'll use the credentials to fetch the user's info.
     user_info_service = googleapiclient.discovery.build(
         serviceName="oauth2", version="v2", credentials=credentials)
 
