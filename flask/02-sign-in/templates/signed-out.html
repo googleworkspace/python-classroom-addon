@@ -16,7 +16,7 @@ limitations under the License.
 
 {% extends "base.html"%}
 {% block headcontent %}
-<meta http-equiv="refresh" content="3;url={{url_for('classroom_addon')}}" />
+<meta http-equiv="refresh" content="3;url={{url_for('start_auth_flow')}}" />
 {% endblock %}
 
 {% block content %}
@@ -24,6 +24,6 @@ limitations under the License.
     <h2>Sign-out Complete!</h2>
     <hr>
     Your credentials have been cleared; you are logged out.
-    You will be redirected to the authorization page in 5 seconds.
+    You will be redirected to the sign-in page in 5 seconds.
 </div>
 {% endblock %}

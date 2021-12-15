@@ -14,7 +14,6 @@
 
 import os
 import flask
-from oauth2client import client
 import requests
 import json
 import flask_sqlalchemy
@@ -67,14 +66,13 @@ class User(db.Model):
     email = db.Column(db.String(120), unique=True)
     portrait_url = db.Column(db.Text())
 
-    # The user's credentials.
-    # Note that refresh and access tokens will become invalid if:
+    # The user's refresh token, which will be used to obtain an access token.
+    # Note that refresh tokens will become invalid if:
     # - The refresh token has not been used for six months.
     # - The user revokes your app's access permissions.
     # - The user changes passwords.
     # - The user belongs to a Google Cloud Platform organization
     #   that has session control policies in effect.
-    access_token = db.Column(db.Text())
     refresh_token = db.Column(db.Text())
 
     def __repr__(self):
@@ -119,46 +117,59 @@ def classroom_addon():
         db.create_all()
 
     # Retrieve the login_hint and hd query parameters.
+    login_hint = flask.request.args.get("login_hint")
+    hd = flask.request.args.get("hd")
+
     # It's possible that we might return to this route later, in which case the
     # parameters will not be passed in. Instead, use the values cached in the session.
-    login_hint = flask.request.args.get("login_hint") or flask.session.get(
-        "login_hint")
-    hd = flask.request.args.get("hd") or flask.session.get("hd")
 
-    # Ensure that these parameters are cached in the session.
-    if login_hint:
-        flask.session["login_hint"] = login_hint
-    if hd:
+    # If neither query parameter is available, use the values in the session.
+    if login_hint is None and hd is None:
+        login_hint = flask.session.get("login_hint")
+        hd = flask.session.get("hd")
+
+    # If there's no login_hint query parameter, then check for hd.
+    # Send the user to the sign in page.
+    elif hd is not None:
         flask.session["hd"] = hd
+        return start_auth_flow()
 
-    # If we received a login_hint, we'll use it to check if we have any stored
-    # credentials for this user.
-    if login_hint:
-        stored_credentials = get_credentials_from_storage(login_hint)
+    # If the login_hint query parameter is available, we'll store it in the session.
+    else:
+        flask.session["login_hint"] = login_hint
 
-        # If we have stored credentials, store them in the session.
-        if stored_credentials:
-            # Load the client secrets file contents.
-            client_secrets_dict = json.load(
-                open(CLIENT_SECRETS_FILE)).get("web")
+    # Check if we have any stored credentials for this user.
+    stored_credentials = get_credentials_from_storage(login_hint)
 
-            # Set the credentials in the session.
-            flask.session["credentials"] = {
-                "token": stored_credentials.access_token,
-                "refresh_token": stored_credentials.refresh_token,
-                "token_uri": client_secrets_dict["token_uri"],
-                "client_id": client_secrets_dict["client_id"],
-                "client_secret": client_secrets_dict["client_secret"],
-                "scopes": SCOPES
-            }
+    # If we have stored credentials, load them into the session.
+    if stored_credentials:
+        # Load the client secrets file contents.
+        client_secrets_dict = json.load(open(CLIENT_SECRETS_FILE)).get("web")
 
-            # Set the username in the session.
-            flask.session["username"] = stored_credentials.display_name
+        # Update the credentials in the session.
+        if not flask.session.get("credentials"):
+            flask.session["credentials"] = {}
 
-    # Redirect to the authorization page if we received hd OR if we received
-    # login_hint but don't have any stored credentials for this user.
-    if "credentials" not in flask.session or hd:
-        return flask.render_template("authorization.html")
+        flask.session["credentials"]["token"] = flask.session.get("credentials").get("token") or None
+        flask.session["credentials"][
+            "refresh_token"] = stored_credentials.refresh_token
+        flask.session["credentials"]["token_uri"] = client_secrets_dict[
+            "token_uri"]
+        flask.session["credentials"]["client_id"] = client_secrets_dict[
+            "client_id"]
+        flask.session["credentials"]["client_secret"] = client_secrets_dict[
+            "client_secret"]
+        flask.session["credentials"]["scopes"] = SCOPES
+
+        # Set the username in the session.
+        flask.session["username"] = stored_credentials.display_name
+
+    # Redirect to the authorization page if we received login_hint but don't
+    # have any stored credentials for this user. We need the refresh token
+    # specifically.
+    if "credentials" not in flask.session or \
+        flask.session["credentials"]["refresh_token"] is None:
+        return start_auth_flow()
 
     return flask.render_template(
         "addon-discovery.html",
@@ -175,7 +186,7 @@ def test_api_request(request_type="username"):
     """
 
     if "credentials" not in flask.session:
-        return flask.render_template("authorization.html")
+        return start_auth_flow()
 
     # Load credentials from the session and client id and client secret from file.
     credentials = google.oauth2.credentials.Credentials(
@@ -185,12 +196,12 @@ def test_api_request(request_type="username"):
     fetched_data = ""
 
     if request_type == "username":
-        if not flask.session.get("username"):
-            user_info_service = googleapiclient.discovery.build(
-                serviceName="oauth2", version="v2", credentials=credentials)
+        # if not flask.session.get("username"):
+        user_info_service = googleapiclient.discovery.build(
+            serviceName="oauth2", version="v2", credentials=credentials)
 
-            flask.session["username"] = (
-                user_info_service.userinfo().get().execute().get("name"))
+        flask.session["username"] = (
+            user_info_service.userinfo().get().execute().get("name"))
 
         fetched_data = flask.session.get("username")
 
@@ -308,10 +319,21 @@ def revoke():
 
     status_code = getattr(revoke, "status_code")
     if status_code == 200:
-        return flask.render_template("authorization.html")
+        return start_auth_flow()
     else:
         return flask.render_template(
-            "index.html", message="An error occurred during revocation!")
+            "addon-discovery.html",
+            message="An error occurred during revocation!")
+
+
+@app.route("/start-auth-flow")
+def start_auth_flow():
+    """
+    Starts the OAuth 2.0 authorization flow. It's important that the
+    template be rendered to properly manage popups.
+    """
+
+    return flask.render_template("authorization.html")
 
 
 @app.route("/clear")
@@ -377,8 +399,7 @@ def save_user_credentials(credentials=None, user_info=None):
             existing_user.email = user_info.get("email")
             existing_user.portrait_url = user_info.get("picture")
 
-        if credentials:
-            existing_user.access_token = credentials.token
+        if credentials and credentials.refresh_token is not None:
             existing_user.refresh_token = credentials.refresh_token
 
     elif credentials and user_info:
@@ -386,7 +407,6 @@ def save_user_credentials(credentials=None, user_info=None):
                         display_name=user_info.get("name"),
                         email=user_info.get("email"),
                         portrait_url=user_info.get("picture"),
-                        access_token=credentials.token,
                         refresh_token=credentials.refresh_token)
 
         db.session.add(new_user)

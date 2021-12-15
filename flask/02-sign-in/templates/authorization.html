@@ -15,6 +15,20 @@ limitations under the License.
 -->
 
 {% extends "base.html"%}
+
+{% block headcontent %}
+<script>
+    var popupWindow;
+
+    function createPopup(url) {
+        popupWindow = window.open(url, 'popUpWindow',
+            'height=500,width=500,left=100,top=100,resizable=no,' +
+            'scrollbars=yes,toolbar=yes,menubar=no,location=yes,' +
+            'directories=no,status=yes');
+    }
+</script>
+{% endblock %}
+
 {% block content %}
 <div class="container">
     <h2>Authorization Required</h2>
@@ -23,15 +37,12 @@ limitations under the License.
         Developer note: if you have *never* seen the user before, they'll need to
         authorize your app. It's most reliable to do so in a popup due to add-ons
         being presented in an iframe.
-        Note that this link also calls a function to close the iframe; since we
-        won't know when the user has finished the authorization flow, we won't
-        be able to reload the addon with their correct credentials. -->
-    <a target="popup" onclick="closeAddonIframe()" href="{{ url_for('authorize') }}">
+    -->
+    <a target="popup" onclick="createPopup(this.href);return false" href="{{ url_for('authorize') }}">
         <img src="../static/btn_google_signin_dark_normal_web.png" alt="Authorize the user">
     </a>
     <br>This will immediately start the authorization flow in a popup.
     <br>This should only be necessary once per user, unless your app has changed scopes or they
     have revoked their credentials.
-    <br>Once complete, close the popup and use the other links below.
 </div>
 {% endblock %}

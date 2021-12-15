@@ -72,7 +72,7 @@ def classroom_addon():
     """
 
     if "credentials" not in flask.session:
-        return flask.render_template("authorization.html")
+        return start_auth_flow()
 
     return flask.render_template(
         "addon-discovery.html",
@@ -89,7 +89,7 @@ def test_api_request(request_type="username"):
     """
 
     if "credentials" not in flask.session:
-        return flask.render_template("authorization.html")
+        return start_auth_flow()
 
     # Load credentials from the session.
     credentials = google.oauth2.credentials.Credentials(
@@ -114,10 +114,9 @@ def test_api_request(request_type="username"):
     flask.session["credentials"] = credentials_to_dict(credentials)
 
     # Render the results of the API call.
-    return flask.render_template(
-        "show-api-query-result.html",
-        data=json.dumps(fetched_data, indent=2),
-        data_title=request_type)
+    return flask.render_template("show-api-query-result.html",
+                                 data=json.dumps(fetched_data, indent=2),
+                                 data_title=request_type)
 
 
 @app.route("/authorize")
@@ -208,10 +207,20 @@ def revoke():
 
     status_code = getattr(revoke, "status_code")
     if status_code == 200:
-        return flask.render_template("authorization.html")
+        return start_auth_flow()
     else:
         return flask.render_template(
             "index.html", message="An error occurred during revocation!")
+
+
+@app.route("/start-auth-flow")
+def start_auth_flow():
+    """
+    Starts the OAuth 2.0 authorization flow. It's important that the
+    template be rendered to properly manage popups.
+    """
+
+    return flask.render_template("authorization.html")
 
 
 @app.route("/clear")
