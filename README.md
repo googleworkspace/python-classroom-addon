@@ -1,8 +1,8 @@
-Google Classroom Add-ons Python Examples
+Google Classroom add-ons Python Examples
 ========================================
 
 This project hosts web applications that demonstrate the implmentation of a Google
-Classroom Add-on using Python. Current examples use the [Flask framework](https://flask.palletsprojects.com/en/2.0.x/).
+Classroom add-on using Python. Current examples use the [Flask framework](https://flask.palletsprojects.com/en/2.0.x/).
 
 Documentation
 -------------

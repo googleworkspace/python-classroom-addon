@@ -14,3 +14,5 @@ Dockerfile
 *.pem
 *.json
 *.sqlite
+
+*/__pycache__/*
