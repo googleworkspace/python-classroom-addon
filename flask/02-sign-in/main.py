@@ -51,8 +51,12 @@ CLIENT_SECRETS_FILE = "client_secret.json"
 # These scopes should match the scopes in your GCP project's OAuth Consent
 # Screen: https://console.cloud.google.com/apis/credentials/consent
 SCOPES = [
+    "openid",
     "https://www.googleapis.com/auth/userinfo.profile",
-    "https://www.googleapis.com/auth/userinfo.email"
+    "https://www.googleapis.com/auth/userinfo.email",
+    "https://www.googleapis.com/auth/classroom.courses.readonly",
+    "https://www.googleapis.com/auth/classroom.addons.teacher",
+    "https://www.googleapis.com/auth/classroom.addons.student"
 ]
 
 
@@ -272,9 +276,6 @@ def credentials_to_dict(credentials):
 
 
 if __name__ == "__main__":
-    # Allow the OAuth flow to adjust scopes.
-    os.environ["OAUTHLIB_RELAX_TOKEN_SCOPE"] = "1"
-
     # You have several options for running the web server.
 
     ### OPTION 1: Unsecured localhost
