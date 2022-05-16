@@ -15,4 +15,6 @@ Dockerfile
 *.json
 *.sqlite
 
-*/__pycache__/*
+# Ignore any Python generated files.
+__pycache__/
+*.py[cod]
