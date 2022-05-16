@@ -14,7 +14,24 @@
 # the License.
 """Entry point for the Flask server.
 
-Loads the webapp module and starts the server."""
+Loads the webapp module and starts the server. Choose an appropriate launch
+method below before running this program.
+
+WARNING: NOT FOR PRODUCTION
+----------------------------
+This is a sample application for development purposes. You should follow
+best practices when securing your production application and in particular
+how you securely store and use OAuth tokens.
+
+Note that storing tokens in the session is for demonstration purposes. Be sure
+to store your tokens securely in your production application.
+
+Review these resources for additional security considerations:
++ Google Identity developer website: https://developers.google.com/identity
++ OAuth 2.0 Security Best Current Practice:
+  https://datatracker.ietf.org/doc/html/draft-ietf-oauth-security-topics
++ OAuth 2.0 Threat Model and Security Considerations:
+  https://datatracker.ietf.org/doc/html/rfc6819"""
 
 from webapp import app
 import os
