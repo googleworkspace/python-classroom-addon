@@ -18,6 +18,7 @@ Uses the flask-sqlalchemy database object defined in the webapp module."""
 
 from webapp import db
 
+
 # Database model to represent a user.
 class User(db.Model):
     # The user's identifying information:
@@ -36,4 +37,17 @@ class User(db.Model):
     refresh_token = db.Column(db.Text())
 
     def __repr__(self):
-        return f"<User {self.display_name}, ID {self.id}>"
+        return (f"<User {self.display_name}, ID {self.id}, "
+                f"name {self.display_name}, email {self.email}, "
+                f"port {self.portrait_url}, ref {self.refresh_token}>")
+
+
+class Attachment(db.Model):
+    # The attachmentId is the unique identifier for the attachment.
+    attachment_id = db.Column(db.String(120), primary_key=True)
+
+    # The image filename to store.
+    image_filename = db.Column(db.String(120))
+
+    # The image caption to store.
+    image_caption = db.Column(db.String(120))

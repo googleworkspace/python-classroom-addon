@@ -38,7 +38,8 @@ limitations under the License.
         authorize your app. It's most reliable to do so in a popup due to add-ons
         being presented in an iframe.
     -->
-    <a target="popup" onclick="createPopup(this.href);return false" href="{{ url_for('authorize') }}">
+    <a target="popup" onclick="createPopup(this.href);return false"
+        href="{{ url_for('authorize', redirect_destination=redirect_destination) }}">
         <img src="../static/btn_google_signin_dark_normal_web.png" alt="Authorize the user">
     </a>
     <br>This will immediately start the authorization flow in a popup.

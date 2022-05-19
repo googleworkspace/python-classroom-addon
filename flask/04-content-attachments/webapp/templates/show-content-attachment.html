@@ -14,16 +14,21 @@ See the License for the specific language governing permissions and
 limitations under the License.
 -->
 
-{% extends "base.html"%}
-{% block headcontent %}
-<meta http-equiv="refresh" content="3;url={{url_for('start_auth_flow')}}" />
-{% endblock %}
-
+{% extends "base.html" %}
 {% block content %}
 <div class="container">
-    <h2>Sign-out Complete!</h2>
-    <hr>
-    Your credentials have been cleared; you are logged out.
-    You will be redirected to the sign-in page in 5 seconds.
+    <h3>This is an Attachment!</h3>
+    <strong>{{message}}</strong>
 </div>
+<hr>
+<div style="margin: auto;color:blue;text-align:center;">
+    <p>
+        <img alt=img src="{{ url_for('static', filename='images/' ~ image_filename) }}" style="width: 350px;">
+    </p>
+    <p>
+        {{ image_caption }}
+    </p>
+
+</div>
+<hr>
 {% endblock %}

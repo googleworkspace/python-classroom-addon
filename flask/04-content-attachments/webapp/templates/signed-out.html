@@ -15,10 +15,15 @@ limitations under the License.
 -->
 
 {% extends "base.html"%}
-
 {% block headcontent %}
-<script>
-    window.opener.location.href = "{{ url_for('classroom_addon') }}";
-    window.close();
-</script>
+<meta http-equiv="refresh" content="3;url={{url_for('start_auth_flow', redirect_destination='discovery_callback')}}" />
+{% endblock %}
+
+{% block content %}
+<div class="container">
+    <h2>Sign-out Complete!</h2>
+    <hr>
+    Your credentials have been cleared; you are logged out.
+    You will be redirected to the sign-in page in 5 seconds.
+</div>
 {% endblock %}

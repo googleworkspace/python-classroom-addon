@@ -12,17 +12,23 @@
 # WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
 # License for the specific language governing permissions and limitations under
 # the License.
-"""Entry point for the Flask server.
+"""Initialize the webapp module.
 
-Loads the webapp module and starts the server."""
+Starts the flask server, loads the config, and initializes the database."""
 
-from webapp import app
-import os
+import flask
+import config
+from flask_sqlalchemy import SQLAlchemy
+from os import path
 
-if __name__ == "__main__":
-    # Allow the OAuth flow to adjust scopes.
-    os.environ["OAUTHLIB_RELAX_TOKEN_SCOPE"] = "1"
+app = flask.Flask(__name__)
+app.config.from_object(config.Config)
 
-    app.run(host="localhost",
-            ssl_context=("localhost.pem", "localhost-key.pem"),
-            debug=True)
+db = SQLAlchemy(app)
+
+from webapp import attachment_routes, attachment_discovery_routes, models
+from webapp import credential_handler as ch
+
+# Initialize the database file if not created.
+if not path.exists(config.DATABASE_FILE_NAME):
+    db.create_all()

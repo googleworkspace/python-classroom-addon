@@ -16,8 +16,9 @@
 
 import os
 
-DATABASE_FILE_NAME = os.path.join(os.path.abspath(os.path.dirname(__file__)),
-                                    'data.sqlite')
+DATABASE_FILE_NAME = os.path.join(
+    os.path.abspath(os.path.dirname(__file__)), 'data.sqlite')
+
 
 class Config(object):
     # Note: A secret key is included in the sample so that it works.
@@ -33,6 +34,5 @@ class Config(object):
     SESSION_COOKIE_SAMESITE = "None"
 
     # Point to a database file in the project root.
-
-    SQLALCHEMY_DATABASE_URI=f"sqlite:///{DATABASE_FILE_NAME}"
-    SQLALCHEMY_TRACK_MODIFICATIONS=False
+    SQLALCHEMY_DATABASE_URI = f"sqlite:///{DATABASE_FILE_NAME}"
+    SQLALCHEMY_TRACK_MODIFICATIONS = False
