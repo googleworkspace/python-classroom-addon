@@ -1,0 +1,40 @@
+<!--
+Copyright 2021 Google LLC
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    https://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+-->
+
+
+<div class="topnav">
+  <ul>
+    <li>
+      <a href="{{url_for('classroom_addon')}}">Home</a>
+    </li>
+
+    {% if session['username'] %}
+    <li>
+      <a href="{{url_for('attachment_options')}}">Create Attachment</a>
+    </li>
+    {% endif %}
+
+
+    <li style="float: right">
+      {% if session['username'] %}
+      <a style="background-color: #db4437" href="{{url_for('clear_credentials')}}">Logout
+        {{ session['username'] }}</a>
+      {% else %}
+      <a style="background-color: #4285f4" href="{{url_for('start_auth_flow', redirect_destination='discovery_callback')}}">Login</a>
+      {% endif %}
+    </li>
+  </ul>
+</div>

@@ -1,0 +1,53 @@
+<!--
+Copyright 2022 Google LLC
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    https://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+-->
+
+{% extends "base.html" %}
+{% include "navbar.html" %}
+{% block content %}
+<div class="container">
+    <h3>Select an Attachment Option</h3>
+    <strong>{{message}}</strong>
+</div>
+
+<form action="" method="post" novalidate>
+    {{ form.hidden_tag() }}
+
+    <fieldset>
+        <legend>Image Choices</legend>
+        <table>
+            {% for split_vars in var_names | slice(2) %}
+            <tr>
+                {% for var_item in split_vars %}
+                    <td>
+                        {{ form[var_item] }}
+                    </td>
+                    <td>
+                        <img alt=img src="{{ url_for('static', filename='images/' ~ form[var_item].name) }}" style="width: 150px;">
+                    </td>
+                    <td>
+                        {{ form[var_item].label }}
+                    </td>
+                {% endfor %}
+            </tr>
+            {% endfor %}
+            </table>
+    </fieldset>
+
+    <p>{{ form.submit() }}</p>
+</form>
+
+<hr>
+{% endblock %}
