@@ -96,7 +96,7 @@ example, to run the web app on `localhost`:
     python main.py
     ```
 
-1.  To load your app, either open the app in your browser or click the **Add-ons** button when creating an Assignment in [Google Classroom](https://classroom.google.com).
+1.  To load your app, either open the app in your browser or select your application in the **Add-ons** menu when creating an Assignment in [Google Classroom](https://classroom.google.com).
 
 Useful Resources
 -------------

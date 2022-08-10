@@ -202,6 +202,10 @@ class CredentialHandler:
                 credentials=self.get_credentials())
 
     def get_classroom_service(self):
+        # A Google API Key can be created in your GCP project's Credentials
+        # settings: https://console.cloud.google.com/apis/credentials.
+        # Click "Create Credentials" at top and choose "API key", then provide
+        # the key in the discoveryServiceUrl below.
         return self.get_discovery_service(
             CLASSROOM_API_SERVICE_NAME,
             CLASSROOM_API_VERSION,

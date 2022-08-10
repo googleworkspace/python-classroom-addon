@@ -149,13 +149,17 @@ def create_attachments(filename_caption_pairs):
             "teacherViewUri": {
                 "uri":
                     flask.url_for(
-                        "load_attachment", _scheme='https', _external=True),
+                        "load_content_attachment",
+                        _scheme='https',
+                        _external=True)
             },
             # Specifies the route for a student user.
             "studentViewUri": {
                 "uri":
                     flask.url_for(
-                        "load_attachment", _scheme='https', _external=True)
+                        "load_content_attachment",
+                        _scheme='https',
+                        _external=True)
             },
             # The title of the attachment.
             "title": f"Attachment {attachment_count}",
@@ -189,8 +193,8 @@ def create_attachments(filename_caption_pairs):
         responses=response_strings)
 
 
-@app.route("/load-attachment")
-def load_attachment():
+@app.route("/load-content-attachment")
+def load_content_attachment():
     """
     Load the attachment for the user's role."""
 
@@ -287,4 +291,4 @@ def attachment_callback():
     ch._credential_handler.save_credentials_to_storage(credentials)
 
     return flask.render_template(
-        "close-me.html", redirect_destination="load_attachment")
+        "close-me.html", redirect_destination="load_content_attachment")

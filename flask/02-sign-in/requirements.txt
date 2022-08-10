@@ -1,5 +1,8 @@
 Flask==2.0.2
-google_api_python_client==2.33.0
+Flask_SQLAlchemy==2.5.1
+Flask_WTF==1.0.0
+google_api_python_client==2.56.0
 google_auth_oauthlib==0.4.6
-protobuf==3.19.1
-requests==2.26.0
+protobuf==4.21.5
+requests==2.27.1
+WTForms==3.0.1
