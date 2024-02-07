@@ -30,4 +30,4 @@ from webapp import routes, models
 
 # Initialize the database file if not created.
 if not path.exists(config.DATABASE_FILE_NAME):
-    db.create_all()
+  db.create_all()

@@ -17,22 +17,25 @@
 import os
 
 DATABASE_FILE_NAME = os.path.join(
-    os.path.abspath(os.path.dirname(__file__)), 'data.sqlite')
+    os.path.abspath(os.path.dirname(__file__)), "data.sqlite"
+)
 
 
 class Config(object):
-    # Note: A secret key is included in the sample so that it works.
-    # If you use this code in your application, replace this with a truly secret
-    # key. See https://flask.palletsprojects.com/quickstart/#sessions.
-    SECRET_KEY = os.environ.get(
-        'SECRET_KEY') or "REPLACE ME - this value is here as a placeholder."
+  # Note: A secret key is included in the sample so that it works.
+  # If you use this code in your application, replace this with a truly secret
+  # key. See https://flask.palletsprojects.com/quickstart/#sessions.
+  SECRET_KEY = (
+      os.environ.get("SECRET_KEY")
+      or "REPLACE ME - this value is here as a placeholder."
+  )
 
-    # Configure the flask cookie settings per the iframe security recommendations:
-    # https://developers.google.com/classroom/eap/add-ons-alpha/iframes#iframe_security_guidelines
-    SESSION_COOKIE_SECURE = True
-    SESSION_COOKIE_HTTPONLY = True
-    SESSION_COOKIE_SAMESITE = "None"
+  # Configure the flask cookie settings per the iframe security recommendations:
+  # https://developers.google.com/classroom/add-ons/developer-guides/iframes#iframe_security_guidelines
+  SESSION_COOKIE_SECURE = True
+  SESSION_COOKIE_HTTPONLY = True
+  SESSION_COOKIE_SAMESITE = "None"
 
-    # Point to a database file in the project root.
-    SQLALCHEMY_DATABASE_URI = f"sqlite:///{DATABASE_FILE_NAME}"
-    SQLALCHEMY_TRACK_MODIFICATIONS = False
+  # Point to a database file in the project root.
+  SQLALCHEMY_DATABASE_URI = f"sqlite:///{DATABASE_FILE_NAME}"
+  SQLALCHEMY_TRACK_MODIFICATIONS = False

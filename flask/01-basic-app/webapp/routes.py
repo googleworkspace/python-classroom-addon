@@ -20,24 +20,25 @@ import flask
 
 @app.route("/")
 def index():
-    """
-    Render the index page from the "index.html" template. This is meant to act
-    as a facsimile of a company's home page. The Add-on Discovery URL should be
-    set to the /classroom-addon route below.
-    """
+  """
+  Render the index page from the "index.html" template. This is meant to act
+  as a facsimile of a company's home page. The Add-on Discovery URL should be
+  set to the /addon-discovery route below.
+  """
 
-    return flask.render_template(
-        "index.html", message="You've reached the index page.")
+  return flask.render_template(
+      "index.html", message="You've reached the index page."
+  )
 
 
-@app.route("/classroom-addon")
+@app.route("/addon-discovery")
 def classroom_addon():
-    """
-    Renders the addon discovery page from the "addon-discovery.html" template.
-    This is meant to be the landing page when opening the web app in the
-    Classroom add-on iframe.
-    """
+  """
+  Renders the addon discovery page from the "addon-discovery.html" template.
+  This is meant to be the landing page when opening the web app in the
+  Classroom add-on iframe.
+  """
 
-    return flask.render_template(
-        "addon-discovery.html",
-        message="You've reached the addon discovery page.")
+  return flask.render_template(
+      "addon-discovery.html", message="You've reached the addon discovery page."
+  )

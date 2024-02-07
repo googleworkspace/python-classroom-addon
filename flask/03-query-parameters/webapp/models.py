@@ -21,20 +21,20 @@ from webapp import db
 
 # Database model to represent a user.
 class User(db.Model):
-    # The user's identifying information:
-    id = db.Column(db.String(120), primary_key=True)
-    display_name = db.Column(db.String(80))
-    email = db.Column(db.String(120), unique=True)
-    portrait_url = db.Column(db.Text())
+  # The user's identifying information:
+  id = db.Column(db.String(120), primary_key=True)
+  display_name = db.Column(db.String(80))
+  email = db.Column(db.String(120), unique=True)
+  portrait_url = db.Column(db.Text())
 
-    # The user's refresh token, which will be used to obtain an access token.
-    # Note that refresh tokens will become invalid if:
-    # - The refresh token has not been used for six months.
-    # - The user revokes your app's access permissions.
-    # - The user changes passwords.
-    # - The user belongs to a Google Cloud Platform organization
-    #   that has session control policies in effect.
-    refresh_token = db.Column(db.Text())
+  # The user's refresh token, which will be used to obtain an access token.
+  # Note that refresh tokens will become invalid if:
+  # - The refresh token has not been used for six months.
+  # - The user revokes your app's access permissions.
+  # - The user changes passwords.
+  # - The user belongs to a Google Cloud Platform organization
+  #   that has session control policies in effect.
+  refresh_token = db.Column(db.Text())
 
-    def __repr__(self):
-        return f"<User {self.display_name}, ID {self.id}>"
+  def __repr__(self):
+    return f"<User {self.display_name}, ID {self.id}>"
