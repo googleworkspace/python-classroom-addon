@@ -1,0 +1,53 @@
+<!--
+Copyright 2021 Google LLC
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    https://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+-->
+
+{% extends "base.html" %}
+
+{% block content %}
+<div class="topnav">
+    <ul>
+        <li>
+            <a href="{{url_for('index')}}">Index</a>
+        </li>
+
+        <li style="float: right">
+            {% if session['username'] %}
+            <a style="background-color: #db4437"
+                href="{{url_for('clear_credentials', callback_method='coursework_assignment_callback')}}">Logout
+                {{ session['username'] }}</a>
+            {% else %}
+            <a style="background-color: #4285f4"
+                href="{{url_for('start_auth_flow', redirect_destination='coursework_assignment_callback')}}">Login</a>
+            {% endif %}
+        </li>
+    </ul>
+</div>
+
+<div class="container">
+    <h3>Welcome to the home page!</h3>
+    <strong>{{message}}</strong>
+</div>
+
+<hr>
+
+{% if session['username'] %}
+<a class="rounded-button" href="{{ url_for('create_coursework_assignment') }}">Create a CourseWork Assignment</a>
+<a class="rounded-button" href="{{ url_for('modify_coursework_assignment') }}">Modify a CourseWork Assignment</a>
+{% else %}
+Please sign in to continue.
+{% endif %}
+
+{% endblock %}
