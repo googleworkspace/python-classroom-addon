@@ -1,5 +1,7 @@
 # Ignore all folders beginning with '.'; this will ignore many local config files for most IDEs.
 .*/
+!.github
+!.sync-repo-settings.yaml
 
 # Ignore any VS Code workspace files.
 *.code-workspace
