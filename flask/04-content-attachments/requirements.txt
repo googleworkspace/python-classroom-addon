@@ -4,7 +4,7 @@ Flask_SQLAlchemy==2.5.1
 Flask_WTF==1.0.0
 google_api_python_client==2.56.0
 google_auth_oauthlib==0.4.6
-protobuf==4.21.5
+protobuf==4.21.6
 requests==2.31.0
 WTForms==3.0.1
 Werkzeug==3.0.3
