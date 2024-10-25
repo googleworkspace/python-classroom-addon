@@ -7,4 +7,4 @@ google_auth_oauthlib==0.4.6
 protobuf==4.21.5
 requests==2.27.1
 WTForms==3.0.1
-Werkzeug==2.3.7
+Werkzeug==3.0.6
