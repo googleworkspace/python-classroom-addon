@@ -32,6 +32,7 @@ from webapp import coursework_routes
 from webapp import models
 from webapp import credential_handler as ch
 
-# Initialize the database file if not created.
-if not path.exists(config.DATABASE_FILE_NAME):
-  db.create_all()
+with app.app_context():
+  # Initialize the database file if not created.
+  if not path.exists(config.DATABASE_FILE_NAME):
+    db.create_all()

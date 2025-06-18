@@ -127,15 +127,9 @@ class CredentialHandler:
       flask.session["credentials"]["token"] = (
           flask.session.get("credentials").get("token") or None
       )
-      flask.session["credentials"][
-          "refresh_token"
-      ] = stored_credentials.refresh_token
-      flask.session["credentials"]["token_uri"] = client_secrets_dict[
-          "token_uri"
-      ]
-      flask.session["credentials"]["client_id"] = client_secrets_dict[
-          "client_id"
-      ]
+      flask.session["credentials"]["refresh_token"] = stored_credentials.refresh_token
+      flask.session["credentials"]["token_uri"] = client_secrets_dict["token_uri"]
+      flask.session["credentials"]["client_id"] = client_secrets_dict["client_id"]
       flask.session["credentials"]["client_secret"] = client_secrets_dict[
           "client_secret"
       ]
@@ -234,6 +228,7 @@ class CredentialHandler:
     if "credentials" in flask.session:
       del flask.session["credentials"]
       del flask.session["username"]
+      del flask.session["login_hint"]
 
 
 _credential_handler = CredentialHandler()

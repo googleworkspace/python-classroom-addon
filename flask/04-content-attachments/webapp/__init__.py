@@ -29,6 +29,7 @@ db = SQLAlchemy(app)
 from webapp import attachment_routes, attachment_discovery_routes, models
 from webapp import credential_handler as ch
 
-# Initialize the database file if not created.
-if not path.exists(config.DATABASE_FILE_NAME):
-  db.create_all()
+with app.app_context():
+  # Initialize the database file if not created.
+  if not path.exists(config.DATABASE_FILE_NAME):
+    db.create_all()

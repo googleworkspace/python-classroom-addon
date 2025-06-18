@@ -282,6 +282,7 @@ class CredentialHandler:
     if "credentials" in flask.session:
       del flask.session["credentials"]
       del flask.session["username"]
+      del flask.session["login_hint"]
 
 
 _credential_handler = CredentialHandler()

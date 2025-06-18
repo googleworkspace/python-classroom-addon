@@ -54,9 +54,7 @@ def image_list_form_builder(image_filenames):
   name_pairs = []
 
   # For this example, images have the format "landmark-name.type".
-  image_captions = [
-      x.split(".")[0].replace("-", " ").title() for x in image_filenames
-  ]
+  image_captions = [x.split(".")[0].replace("-", " ").title() for x in image_filenames]
 
   # Add a checkbox for each image to the form, named by the image filename.
   for i in range(len(image_filenames)):
@@ -85,14 +83,11 @@ def construct_filename_caption_dictionary_list(form):
   """
 
   selected_images = [
-      key
-      for key, value in form.data.items()
-      if value is True and key != "submit"
+      key for key, value in form.data.items() if value is True and key != "submit"
   ]
 
   filename_caption_pairs = {
-      form[image_id].name: form[image_id].label.text
-      for image_id in selected_images
+      form[image_id].name: form[image_id].label.text for image_id in selected_images
   }
 
   return filename_caption_pairs
@@ -186,9 +181,7 @@ def create_attachments(filename_caption_pairs):
         # Specifies the route for a teacher user when the attachment is
         # loaded in the Classroom grading view.
         "studentWorkReviewUri": {
-            "uri": flask.url_for(
-                "view_submission", _scheme="https", _external=True
-            )
+            "uri": flask.url_for("view_submission", _scheme="https", _external=True)
         },
         # Sets the maximum points that a student can earn for this activity.
         # This is the denominator in a fractional representation of a grade.
@@ -319,16 +312,14 @@ def load_activity_attachment():
 
     response_strings.append(pprint.pformat(attachment_response))
 
-    message_str += (
-        f"I've loaded the attachment with ID {attachment.attachment_id}."
-    )
+    message_str += f"I've loaded the attachment with ID {attachment.attachment_id}."
 
   # If the user is a student, get their submission status for this attachment.
   # Note that the submissionId was returned in the addOnContext response.
   else:
-    flask.session["submissionId"] = addon_context_response.get(
-        "studentContext"
-    ).get("submissionId")
+    flask.session["submissionId"] = addon_context_response.get("studentContext").get(
+        "submissionId"
+    )
 
     submission_response = (
         classroom_service.courses()
@@ -355,6 +346,7 @@ def load_activity_attachment():
   form = activity_form_builder()
 
   if form.validate_on_submit():
+    print("2")
     # Check if the student has already submitted a response.
     # If so, update the response stored in the database.
     student_submission = Submission.query.get(
@@ -393,10 +385,8 @@ def load_activity_attachment():
 
       # Create an instance of the Classroom service using the refresh
       # token for the teacher that created the attachment.
-      teacher_classroom_service = (
-          ch._credential_handler.get_classroom_service_for_user(
-              attachment.teacher_id
-          )
+      teacher_classroom_service = ch._credential_handler.get_classroom_service_for_user(
+          attachment.teacher_id
       )
 
       # Build an AddOnAttachmentStudentSubmission instance.
@@ -405,9 +395,7 @@ def load_activity_attachment():
           "pointsEarned": grade,
       }
 
-      request_strings.append(
-          pprint.pformat(add_on_attachment_student_submission)
-      )
+      request_strings.append(pprint.pformat(add_on_attachment_student_submission))
 
       # Issue a PATCH request as the teacher to set the grade numerator
       # for this attachment.
@@ -432,10 +420,8 @@ def load_activity_attachment():
 
     return flask.render_template(
         "acknowledge-submission.html",
-        message="Your response has been recorded. You can close the "
-        "iframe now.",
-        instructions="Please Turn In your assignment if you have "
-        "completed all tasks.",
+        message="Your response has been recorded. You can close the iframe now.",
+        instructions="Please Turn In your assignment if you have completed all tasks.",
     )
 
   # Show the activity. Disable the submission button if the user is a teacher.
@@ -525,10 +511,7 @@ def view_submission():
     grade = 0
 
     # See if the student response matches the stored name.
-    if (
-        student_submission.student_response.lower()
-        == attachment.image_caption.lower()
-    ):
+    if student_submission.student_response.lower() == attachment.image_caption.lower():
       grade = attachment.max_points
 
     # Create an instance of the Classroom service.
