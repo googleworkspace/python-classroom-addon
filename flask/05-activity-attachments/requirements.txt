@@ -3,6 +3,6 @@ flask_sqlalchemy==3.1.1
 flask_wtf==1.2.2
 google_api_python_client==2.172.0
 google_auth_oauthlib==1.2.2
-protobuf==6.31.1
+protobuf==6.33.5
 Requests==2.32.4
 WTForms==3.2.1
