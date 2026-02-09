@@ -1,8 +1,8 @@
-Flask==3.1.1
-flask_sqlalchemy==3.1.1
-flask_wtf==1.2.2
-google_api_python_client==2.172.0
-google_auth_oauthlib==1.2.2
-protobuf==6.31.1
-Requests==2.32.4
+Flask==3.1.2
+Flask-SQLAlchemy==3.1.1
+Flask-WTF==1.2.2
+google-api-python-client==2.189.0
+google-auth-oauthlib==1.2.4
+protobuf==6.33.5
+requests==2.32.5
 WTForms==3.2.1
