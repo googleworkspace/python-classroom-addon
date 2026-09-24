@@ -23,6 +23,7 @@ import os
 import google.oauth2.credentials
 import google_auth_oauthlib.flow
 import googleapiclient.discovery
+from google.auth.transport.requests import Request
 
 # This variable specifies the name of a file that contains the OAuth 2.0
 # information for this application, including its client_id and client_secret.
@@ -61,34 +62,36 @@ class CredentialHandler:
     self._client_secrets_dict = json.load(open(client_secrets_file)).get("web")
     self._credentials = None
 
-  def get_credentials(self, user_id=None):
-    """Gets the OAuth credentials for a user.
-
-    Args:
-        user_id: Optional user ID, typically provided by login_hint.
+  def get_credentials(self):
+    """Retrieves or reconstructs valid credentials for the active session.
 
     Returns:
-        The OAuth credentials for the user, or None if credentials could not
-        be constructed.
+        google.oauth2.credentials.Credentials or None if not authenticated.
     """
-    # Check if we have not loaded any credentials yet.
-
-    # If the user_id has been provided, it probably came from the
-    # login_hint query parameter. We can use it to look up the stored
-    # credentials.
-    if user_id is not None:
-      self.get_credentials_from_storage(user_id)
-    # Otherwise, check if we have credentials in the session already.
-    # If not, then we can't proceed; return an empty value.
-    if (
-        "credentials" not in flask.session
-        or flask.session["credentials"]["refresh_token"] is None
-    ):
+    user_id = flask.session.get("user_id")
+    if not user_id:
+      return None
+    print(f"User ID from session: {user_id}")
+    # Retrieve user record using the trusted session user_id.
+    stored_user = self.get_credentials_from_storage(user_id)
+    if not stored_user or not stored_user.refresh_token:
       return None
 
-    self._credentials = google.oauth2.credentials.Credentials(
-        **flask.session["credentials"]
+    session_creds = flask.session.get("credentials") or {}
+    credentials = google.oauth2.credentials.Credentials(
+        token=session_creds.get("token"),
+        refresh_token=stored_user.refresh_token,
+        token_uri=self._client_secrets_dict["token_uri"],
+        client_id=self._client_secrets_dict["client_id"],
+        client_secret=self._client_secrets_dict["client_secret"],
+        scopes=SCOPES,
     )
+
+    if not credentials.valid:
+      credentials.refresh(Request())
+      flask.session["credentials"] = self.session_credentials_to_dict(credentials)
+
+    self._credentials = credentials
 
     return self._credentials
 
@@ -96,7 +99,8 @@ class CredentialHandler:
     """Converts the credentials from the session to a dictionary.
 
     Args:
-        credentials: A dictionary containing the OAuth credentials to save.
+        credentials: A google.oauth2.credentials.Credentials object containing the OAuth
+        credentials to save.
     """
     return {
         "token": credentials.token,
@@ -114,33 +118,7 @@ class CredentialHandler:
     Args:
         id: The user ID, typically passed in the login_hint query parameter.
     """
-    stored_credentials = User.query.get(id)
-
-    # If we have stored credentials, load them into the session.
-    if stored_credentials:
-      # Load the client secrets file contents.
-      client_secrets_dict = json.load(open(CLIENT_SECRETS_FILE)).get("web")
-
-      # Update the credentials in the session.
-      if not flask.session.get("credentials"):
-        flask.session["credentials"] = {}
-
-      flask.session["credentials"]["token"] = (
-          flask.session.get("credentials").get("token") or None
-      )
-      flask.session["credentials"]["refresh_token"] = stored_credentials.refresh_token
-      flask.session["credentials"]["token_uri"] = client_secrets_dict["token_uri"]
-      flask.session["credentials"]["client_id"] = client_secrets_dict["client_id"]
-      flask.session["credentials"]["client_secret"] = client_secrets_dict[
-          "client_secret"
-      ]
-      flask.session["credentials"]["scopes"] = SCOPES
-
-      # Set the username and login_hint in the session.
-      flask.session["username"] = stored_credentials.display_name
-      flask.session["login_hint"] = stored_credentials.id
-
-    return stored_credentials
+    return User.query.get(id)
 
   def save_credentials_to_storage(self, credentials):
     """
@@ -157,7 +135,7 @@ class CredentialHandler:
     )
     user_info = user_info_service.userinfo().get().execute()
     flask.session["username"] = user_info.get("name")
-    flask.session["login_hint"] = user_info.get("id")
+    flask.session["user_id"] = user_info.get("id")
 
     # See if we have any stored credentials for this user. If they have used
     # the add-on before, we should have received login_hint in the query
@@ -189,24 +167,27 @@ class CredentialHandler:
 
     db.session.commit()
 
-  def get_discovery_service(self, service_name, version, service_url=None):
+  def get_discovery_service(
+      self, service_name, version, service_url=None, credentials=None
+  ):
     """Gets the Google Classroom discovery service.
 
     Returns:
         The Google Classroom discovery service.
     """
+    creds = self.get_credentials() if credentials is None else credentials
     return (
         googleapiclient.discovery.build(
             serviceName=service_name,
             version=version,
-            credentials=self.get_credentials(),
+            credentials=creds,
         )
         if service_url is None
         else googleapiclient.discovery.build(
             serviceName=service_name,
             version=version,
             discoveryServiceUrl=service_url,
-            credentials=self.get_credentials(),
+            credentials=creds,
         )
     )
 
@@ -228,8 +209,13 @@ class CredentialHandler:
 
     if "credentials" in flask.session:
       del flask.session["credentials"]
+    if "username" in flask.session:
       del flask.session["username"]
+    if "login_hint" in flask.session:
       del flask.session["login_hint"]
+    if "user_id" in flask.session:
+      del flask.session["user_id"]
+    self._credentials = None
 
 
 _credential_handler = CredentialHandler()

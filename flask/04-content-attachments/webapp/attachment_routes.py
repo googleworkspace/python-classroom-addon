@@ -46,9 +46,7 @@ def image_list_form_builder(image_filenames):
   name_pairs = []
 
   # For this example, images have the format "landmark-name.type".
-  image_captions = [
-      x.split(".")[0].replace("-", " ").title() for x in image_filenames
-  ]
+  image_captions = [x.split(".")[0].replace("-", " ").title() for x in image_filenames]
 
   # Add a checkbox for each image to the form, named by the image filename.
   for i in range(len(image_filenames)):
@@ -76,14 +74,11 @@ def construct_filename_caption_dictionary_list(form):
       A dictionary that maps image filenames to captions.
   """
   selected_images = [
-      key
-      for key, value in form.data.items()
-      if value is True and key != "submit"
+      key for key, value in form.data.items() if value is True and key != "submit"
   ]
 
   filename_caption_pairs = {
-      form[image_id].name: form[image_id].label.text
-      for image_id in selected_images
+      form[image_id].name: form[image_id].label.text for image_id in selected_images
   }
 
   return filename_caption_pairs
@@ -208,9 +203,21 @@ def create_attachments(filename_caption_pairs):
 @app.route("/load-content-attachment")
 def load_content_attachment():
   """
-  Load the attachment for the user's role."""
+  Load the attachment for the user's role.
+  """
+  login_hint = flask.request.args.get("login_hint")
+  current_user_id = flask.session.get("user_id")
 
-  # Retrieve the itemId, itemType, courseId, and addOnToken query parameters.
+  # If user switched accounts in Classroom, reset session.
+  if current_user_id and login_hint and current_user_id != login_hint:
+    flask.session.clear()
+    current_user_id = None
+
+  # If the login_hint query parameter is available, we'll store it in the session.
+  if login_hint:
+    flask.session["login_hint"] = login_hint
+
+  # Retrieve the itemId, itemType, courseId, and attachmentId query parameters.
   if flask.request.args.get("itemId"):
     flask.session["itemId"] = flask.request.args.get("itemId")
   # itemType will be one of the following: "announcement", "assignment", "material".
@@ -223,25 +230,10 @@ def load_content_attachment():
   if flask.request.args.get("attachmentId"):
     flask.session["attachmentId"] = flask.request.args.get("attachmentId")
 
-  # If the login_hint query parameter is available, we'll store it in the session.
-  if flask.request.args.get("login_hint"):
-    flask.session["login_hint"] = flask.request.args.get("login_hint")
-
-  # It's possible that we might return to this route later, in which case the
-  # parameters will not be passed in. Instead, use the login_hint cached in the session.
-  login_hint = flask.session.get("login_hint")
-
-  # If there's still no login_hint query parameter, this must be their first time signing
-  # in, so send the user to the sign in page.
-  if login_hint is None:
-    return ch.start_auth_flow("attachment_callback")
-
-  # Redirect to the authorization page if we received login_hint but don't
-  # have any stored credentials for this user. We need the refresh token
-  # specifically.
-  credentials = ch._credential_handler.get_credentials(
-      flask.session["login_hint"]
-  )
+  # Verify if the current session already has valid credentials. Do not trust
+  # login_hint to look up credentials without authentication, as an attacker
+  # could supply an arbitrary user's ID to hijack their session.
+  credentials = ch._credential_handler.get_credentials()
   if credentials is None:
     return ch.start_auth_flow("attachment_callback")
 
@@ -307,21 +299,40 @@ def attachment_callback():
   allowed scopes.
   """
 
+  stored_state = flask.session.get("state")
+  request_state = flask.request.args.get("state")
+  if not stored_state or stored_state != request_state:
+    app.logger.warning(
+        "OAuth state mismatch. Session state: %s, Request state: %s",
+        stored_state,
+        request_state,
+    )
+    return ch.start_auth_flow("attachment_callback")
+
   # Specify the state when creating the flow in the callback so that it can
   # verified in the authorization server response.
-  flow = ch.build_flow_instance("attachment_callback", flask.session["state"])
+  flow = ch.build_flow_instance("attachment_callback", stored_state)
+  flow.fetch_token(authorization_response=flask.request.url)
 
   # Use the authorization server's response to fetch the OAuth 2.0 tokens.
-  authorization_response = flask.request.url
-  flow.fetch_token(authorization_response=authorization_response)
-
   # Store credentials in the session.
   credentials = flow.credentials
-  flask.session[
-      "credentials"
-  ] = ch._credential_handler.session_credentials_to_dict(credentials)
 
-  # Add or update the user's record in the database.
+  # Fetch profile to verify Google user ID.
+  user_info_service = ch._credential_handler.get_discovery_service(
+      "oauth2", "v2", credentials=credentials
+  )
+  user_info = user_info_service.userinfo().get().execute()
+  google_id = user_info.get("id")
+
+  # Bind the authenticated Google ID to the session.
+  flask.session["user_id"] = google_id
+  flask.session["username"] = user_info.get("name")
+  flask.session["credentials"] = ch._credential_handler.session_credentials_to_dict(
+      credentials
+  )
+
+  # Save/update refresh token in database keyed by the verified Google ID.
   ch._credential_handler.save_credentials_to_storage(credentials)
 
   return flask.render_template(

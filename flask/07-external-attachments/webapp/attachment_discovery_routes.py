@@ -78,21 +78,9 @@ def classroom_addon():
   if flask.request.args.get("login_hint"):
     flask.session["login_hint"] = flask.request.args.get("login_hint")
 
-  # It's possible that we might return to this route later, in which case the
-  # parameters will not be passed in. Instead, use the login_hint cached in the session.
-  login_hint = flask.session.get("login_hint")
-
-  # If there's still no login_hint query parameter, this must be their first time signing
-  # in, so send the user to the sign in page.
-  if login_hint is None:
-    return ch.start_auth_flow("discovery_callback")
-
-  # Check if we have any stored credentials for this user.
-  credentials = ch._credential_handler.get_credentials(login_hint)
-
-  # Redirect to the authorization page if we received login_hint but don't
-  # have any stored credentials for this user. We need the refresh token
-  # specifically.
+  # Verify if the current session already has valid credentials. Do not trust
+  # login_hint to look up credentials without authentication.
+  credentials = ch._credential_handler.get_credentials()
   if credentials is None:
     return ch.start_auth_flow("discovery_callback")
 
@@ -150,29 +138,42 @@ def discovery_callback():
   allowed scopes.
   """
 
+  stored_state = flask.session.get("state")
+  request_state = flask.request.args.get("state")
+  if not stored_state or stored_state != request_state:
+    app.logger.warning(
+        "OAuth state mismatch. Session state: %s, Request state: %s",
+        stored_state,
+        request_state,
+    )
+    return ch.start_auth_flow("discovery_callback")
+
   # Specify the state when creating the flow in the callback so that it can
   # verified in the authorization server response.
-  flow = ch.build_flow_instance("discovery_callback", flask.session["state"])
-
-  # Use the authorization server's response to fetch the OAuth 2.0 tokens.
-  authorization_response = flask.request.url
-  flow.fetch_token(authorization_response=authorization_response)
+  flow = ch.build_flow_instance("discovery_callback", stored_state)
+  flow.fetch_token(authorization_response=flask.request.url)
 
   # Store credentials in the session.
   credentials = flow.credentials
-  flask.session["credentials"] = ch._credential_handler.session_credentials_to_dict(
-      credentials
+
+  # Fetch profile to verify Google user ID.
+  user_info_service = ch._credential_handler.get_discovery_service(
+      "oauth2", "v2", credentials=credentials
   )
+  user_info = user_info_service.userinfo().get().execute()
+  google_id = user_info.get("id")
 
   # The flow is complete!
   # Add the credentials to our persistent storage.
   # We'll extract the "id" value from the credentials to use as a key.
-  # This is the user's unique Google ID, and will match the login_hint
-  # query parameter in the future.
+  # This is the user's unique Google ID.
+  flask.session["user_id"] = google_id
+  flask.session["username"] = user_info.get("name")
+  flask.session["credentials"] = ch._credential_handler.session_credentials_to_dict(
+      credentials
+  )
 
-  # If we've reached this point, and there is already a record in our
-  # database for this user, they must be obtaining new credentials;
-  # update the stored credentials.
+  # Save/update refresh token in database keyed by the verified Google ID.
   ch._credential_handler.save_credentials_to_storage(credentials)
 
   return flask.render_template("close-me.html", redirect_destination="classroom_addon")

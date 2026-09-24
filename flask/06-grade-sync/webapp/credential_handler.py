@@ -40,11 +40,7 @@ SCOPES = [
     "https://www.googleapis.com/auth/userinfo.email",
     "https://www.googleapis.com/auth/classroom.addons.teacher",
     "https://www.googleapis.com/auth/classroom.addons.student",
-    "https://www.googleapis.com/auth/classroom.courses",
     "https://www.googleapis.com/auth/classroom.coursework.students",
-    "https://www.googleapis.com/auth/classroom.coursework.me",
-    "https://www.googleapis.com/auth/classroom.courseworkmaterials",
-    "https://www.googleapis.com/auth/classroom.announcements",
 ]
 
 CLASSROOM_API_SERVICE_NAME = "classroom"
@@ -67,36 +63,53 @@ class CredentialHandler:
     self._client_secrets_dict = json.load(open(client_secrets_file)).get("web")
     self._credentials = None
 
-  def get_credentials(self, user_id=None):
-    """Gets the OAuth credentials for a user.
-
-    Args:
-        user_id: Optional user ID, typically provided by login_hint.
+  def get_credentials(self):
+    """Retrieves or reconstructs valid credentials for the active session.
 
     Returns:
-        The OAuth credentials for the user, or None if credentials could not
-        be constructed.
+        google.oauth2.credentials.Credentials or None if not authenticated.
     """
-    # Check if we have not loaded any credentials yet.
-
-    # If the user_id has been provided, it probably came from the
-    # login_hint query parameter. We can use it to look up the stored
-    # credentials.
-    if user_id is not None:
-      self.get_credentials_from_storage(user_id)
-    # Otherwise, check if we have credentials in the session already.
-    # If not, then we can't proceed; return an empty value.
-    elif (
-        "credentials" not in flask.session
-        or flask.session["credentials"]["refresh_token"] is None
-    ):
+    user_id = flask.session.get("user_id")
+    if not user_id:
       return None
 
-    self._credentials = google.oauth2.credentials.Credentials(
-        **flask.session["credentials"]
+    # Retrieve user record using the trusted session user_id.
+    stored_user = self.get_credentials_from_storage(user_id)
+    if not stored_user or not stored_user.refresh_token:
+      return None
+
+    session_creds = flask.session.get("credentials") or {}
+    credentials = google.oauth2.credentials.Credentials(
+        token=session_creds.get("token"),
+        refresh_token=stored_user.refresh_token,
+        token_uri=self._client_secrets_dict["token_uri"],
+        client_id=self._client_secrets_dict["client_id"],
+        client_secret=self._client_secrets_dict["client_secret"],
+        scopes=SCOPES,
     )
 
+    if not credentials.valid:
+      credentials.refresh(Request())
+      flask.session["credentials"] = self.session_credentials_to_dict(credentials)
+
+    self._credentials = credentials
+
     return self._credentials
+
+  def session_credentials_to_dict(self, credentials):
+    """Converts the given credentials to a dictionary.
+
+    Args:
+        credentials: A dictionary containing the OAuth credentials to save.
+    """
+    return {
+        "token": credentials.token,
+        "refresh_token": credentials.refresh_token,
+        "token_uri": credentials.token_uri,
+        "client_id": credentials.client_id,
+        "client_secret": credentials.client_secret,
+        "scopes": credentials.scopes,
+    }
 
   def get_credentials_from_storage(self, id):
     """
@@ -108,38 +121,7 @@ class CredentialHandler:
         The User record from the database for the given ID, or None if
         no record could be found.
     """
-    stored_credentials = User.query.get(id)
-
-    # If we have stored credentials, load them into the session.
-    if stored_credentials:
-      # Load the client secrets file contents.
-      client_secrets_dict = json.load(open(CLIENT_SECRETS_FILE)).get("web")
-
-      # Update the credentials in the session.
-      if not flask.session.get("credentials"):
-        flask.session["credentials"] = {}
-
-      flask.session["credentials"]["token"] = (
-          flask.session.get("credentials").get("token") or None
-      )
-      flask.session["credentials"][
-          "refresh_token"
-      ] = stored_credentials.refresh_token
-      flask.session["credentials"]["token_uri"] = client_secrets_dict[
-          "token_uri"
-      ]
-      flask.session["credentials"]["client_id"] = client_secrets_dict[
-          "client_id"
-      ]
-      flask.session["credentials"]["client_secret"] = client_secrets_dict[
-          "client_secret"
-      ]
-      flask.session["credentials"]["scopes"] = SCOPES
-
-      # Set the username in the session.
-      flask.session["username"] = stored_credentials.display_name
-
-    return stored_credentials
+    return User.query.get(id)
 
   def save_credentials_to_storage(self, credentials):
     """
@@ -156,7 +138,7 @@ class CredentialHandler:
     )
     user_info = user_info_service.userinfo().get().execute()
     flask.session["username"] = user_info.get("name")
-    flask.session["login_hint"] = user_info.get("id")
+    flask.session["user_id"] = user_info.get("id")
 
     # See if we have any stored credentials for this user. If they have used
     # the add-on before, we should have received login_hint in the query
@@ -182,31 +164,34 @@ class CredentialHandler:
           email=user_info.get("email"),
           portrait_url=user_info.get("picture"),
           refresh_token=credentials.refresh_token,
-          access_token=credentials.token,
       )
 
       db.session.add(new_user)
 
     db.session.commit()
 
-  def get_discovery_service(self, service_name, version, service_url=None):
+  def get_discovery_service(
+      self, service_name, version, service_url=None, credentials=None
+  ):
     """Gets the Google Classroom discovery service.
 
     Returns:
         The Google Classroom discovery service.
     """
+    creds = self.get_credentials() if credentials is None else credentials
     return (
         googleapiclient.discovery.build(
             serviceName=service_name,
             version=version,
-            credentials=self.get_credentials(),
+            credentials=creds,
         )
         if service_url is None
         else googleapiclient.discovery.build(
             serviceName=service_name,
             version=version,
             discoveryServiceUrl=service_url,
-            credentials=self.get_credentials(),
+            static_discovery=False,
+            credentials=creds,
         )
     )
 
@@ -218,61 +203,57 @@ class CredentialHandler:
     return self.get_discovery_service(
         CLASSROOM_API_SERVICE_NAME,
         CLASSROOM_API_VERSION,
-        service_url=f"https://classroom.googleapis.com/$discovery/rest?labels=ADD_ONS_ALPHA&key={GOOGLE_API_KEY}",
+        service_url=f"https://classroom.googleapis.com/$discovery/rest?key={GOOGLE_API_KEY}",
     )
 
-  def get_classroom_service_for_user(self, user_id):
-    """
-    Gets the Google Classroom discovery service using the stored credentials
-    for a specific user.
+  # def get_classroom_service_for_user(self, user_id):
+  #   """
+  #   Gets the Google Classroom discovery service using the stored credentials
+  #   for a specific user.
 
-    Note that this method assumes that the specified user has already been
-    granted access to the Classroom API.
+  #   Note that this method assumes that the specified user has already been
+  #   granted access to the Classroom API.
 
-    Args:
-        user_id: The user ID that should be granted access to the service.
-    Returns:
-        The Google Classroom discovery service with the specified user's
-        credentials.
-    """
+  #   Args:
+  #       user_id: The user ID that should be granted access to the service.
+  #   Returns:
+  #       The Google Classroom discovery service with the specified user's
+  #       credentials.
+  #   """
 
-    # We're assuming that there are already credentials in the session.
-    # These will be valid to construct a Classroom service for another user
-    # except for the tokens.
-    if not flask.session.get("credentials"):
-      raise ValueError(
-          "No credentials found in session for the requested user."
-      )
+  #   # We're assuming that there are already credentials in the session.
+  #   # These will be valid to construct a Classroom service for another user
+  #   # except for the tokens.
+  #   if not flask.session.get("credentials"):
+  #     raise ValueError("No credentials found in session for the requested user.")
 
-    # Make a copy of the credentials, so we don't modify the original.
-    user_credentials_dict = deepcopy(flask.session.get("credentials"))
+  #   # Make a copy of the credentials, so we don't modify the original.
+  #   user_credentials_dict = deepcopy(flask.session.get("credentials"))
 
-    # Retrieve the requested user's stored record.
-    user_record = User.query.get(user_id)
+  #   # Retrieve the requested user's stored record.
+  #   user_record = User.query.get(user_id)
 
-    # Apply the user's tokens to the copied credentials.
-    user_credentials_dict["refresh_token"] = user_record.refresh_token
-    user_credentials_dict["token"] = user_record.access_token
+  #   # Apply the user's tokens to the copied credentials.
+  #   user_credentials_dict["refresh_token"] = user_record.refresh_token
+  #   user_credentials_dict["token"] = user_record.access_token
 
-    # Construct a temporary credentials object.
-    user_credentials = google.oauth2.credentials.Credentials(
-        **user_credentials_dict
-    )
-    if user_credentials.expired:
-      user_credentials.refresh(Request())
+  #   # Construct a temporary credentials object.
+  #   user_credentials = google.oauth2.credentials.Credentials(**user_credentials_dict)
+  #   if user_credentials.expired:
+  #     user_credentials.refresh(Request())
 
-    # Request the Classroom service for the specified user.
+  #   # Request the Classroom service for the specified user.
 
-    # A Google API Key can be created in your GCP project's Credentials
-    # settings: https://console.cloud.google.com/apis/credentials.
-    # Click "Create Credentials" at top and choose "API key", then provide
-    # the key in the discoveryServiceUrl below.
-    return googleapiclient.discovery.build(
-        serviceName=CLASSROOM_API_SERVICE_NAME,
-        version=CLASSROOM_API_VERSION,
-        discoveryServiceUrl=f"https://classroom.googleapis.com/$discovery/rest?labels=ADD_ONS_ALPHA&key={GOOGLE_API_KEY}",
-        credentials=user_credentials,
-    )
+  #   # A Google API Key can be created in your GCP project's Credentials
+  #   # settings: https://console.cloud.google.com/apis/credentials.
+  #   # Click "Create Credentials" at top and choose "API key", then provide
+  #   # the key in the discoveryServiceUrl below.
+  #   return googleapiclient.discovery.build(
+  #       serviceName=CLASSROOM_API_SERVICE_NAME,
+  #       version=CLASSROOM_API_VERSION,
+  #       discoveryServiceUrl=f"https://classroom.googleapis.com/$discovery/rest?labels=ADD_ONS_ALPHA&key={GOOGLE_API_KEY}",
+  #       credentials=user_credentials,
+  #   )
 
   def clear_credentials_in_session(self):
     """
@@ -281,8 +262,13 @@ class CredentialHandler:
 
     if "credentials" in flask.session:
       del flask.session["credentials"]
+    if "username" in flask.session:
       del flask.session["username"]
+    if "login_hint" in flask.session:
       del flask.session["login_hint"]
+    if "user_id" in flask.session:
+      del flask.session["user_id"]
+    self._credentials = None
 
 
 _credential_handler = CredentialHandler()
@@ -326,8 +312,8 @@ def authorize(redirect_destination):
   # Create flow instance to manage the OAuth Authorization Grant Flow steps.
 
   # The URI created here must exactly match one of the authorized redirect
-  # URIs for the OAuth 2.0 client, which you configured in the API Console. If
-  # this value doesn't match an authorized URI, you will get a
+  # URIs for the OAuth 2.0 client, which you configured in the API Console.
+  # If this value doesn't match an authorized URI, you will get a
   # "redirect_uri_mismatch" error.
   flow_instance = build_flow_instance(redirect_destination)
 
@@ -349,49 +335,33 @@ def authorize(redirect_destination):
   return flask.redirect(authorization_url)
 
 
-def credentials_to_dict(credentials):
-  """Converts the given credentials to a dictionary.
+# def check_login_query_parameters(args):
+#   """
+#   Check which login query parameters are present and return stored credentials
+#   if appropriate.
 
-  Args:
-      credentials: A dictionary containing the OAuth credentials to save.
-  """
-  return {
-      "token": credentials.token,
-      "refresh_token": credentials.refresh_token,
-      "token_uri": credentials.token_uri,
-      "client_id": credentials.client_id,
-      "client_secret": credentials.client_secret,
-      "scopes": credentials.scopes,
-  }
+#   Args:
+#       args: A dictionary of passed query parameters.
+#   Returns:
+#       An OAuth 2.0 credentials object if the login query parameters are valid,
+#       otherwise None.
+#   """
 
+#   # Retrieve the login_hint query parameter.
+#   # It's possible that we might return to this route later, in which case the
+#   # parameters will not be passed in. Instead, use the login_hint cached in the session.
+#   login_hint = flask.session.get("login_hint")
 
-def check_login_query_parameters(args):
-  """
-  Check which login query parameters are present and return stored credentials
-  if appropriate.
+#   # If there's no login_hint query parameter, we won't be able to retrieve credentials.
+#   if login_hint is None:
+#     return None
 
-  Args:
-      args: A dictionary of passed query parameters.
-  Returns:
-      An OAuth 2.0 credentials object if the login query parameters are valid,
-      otherwise None.
-  """
+#   # If the login_hint query parameter is available, store it in the session.
+#   else:
+#     flask.session["login_hint"] = args.get("login_hint")
 
-  # Retrieve the login_hint query parameter.
-  # It's possible that we might return to this route later, in which case the
-  # parameters will not be passed in. Instead, use the login_hint cached in the session.
-  login_hint = flask.session.get("login_hint")
-
-  # If there's no login_hint query parameter, we won't be able to retrieve credentials.
-  if login_hint is None:
-    return None
-
-  # If the login_hint query parameter is available, store it in the session.
-  else:
-    flask.session["login_hint"] = args.get("login_hint")
-
-  # Return stored credentials if they exist for this user.
-  return _credential_handler.get_credentials(flask.session["login_hint"])
+#   # Return stored credentials if they exist for this user.
+#   return _credential_handler.get_credentials(flask.session["login_hint"])
 
 
 @app.route("/clear")

@@ -32,7 +32,7 @@ import pprint
 # Work Review iframe.
 # Set this value to False to pass back grades when the student submits the
 # activity.
-SET_GRADE_WITH_LOGGED_IN_USER_CREDENTIALS = False
+SET_GRADE_WITH_LOGGED_IN_USER_CREDENTIALS = True
 
 
 def image_list_form_builder(image_filenames):
@@ -81,7 +81,6 @@ def construct_filename_caption_dictionary_list(form):
   Returns:
       A dictionary that maps image filenames to captions.
   """
-
   selected_images = [
       key for key, value in form.data.items() if value is True and key != "submit"
   ]
@@ -215,7 +214,7 @@ def create_attachments(filename_caption_pairs):
         image_filename=key,
         image_caption=value,
         max_points=int(resp.get("maxPoints")),
-        teacher_id=flask.session["login_hint"],
+        teacher_id=flask.session["user_id"],
     )
     db.session.add(new_attachment)
     db.session.commit()
@@ -261,18 +260,23 @@ def load_activity_attachment():
   Render an activity attachment from the "show-activity-attachment.html"
   template.
   """
+  login_hint = flask.request.args.get("login_hint")
+  current_user_id = flask.session.get("user_id")
+
+  # If user switched accounts in Classroom, reset session.
+  if current_user_id and login_hint and current_user_id != login_hint:
+    flask.session.clear()
+    current_user_id = None
 
   # Save the query parameters passed to the iframe in the session.
   add_iframe_query_parameters_to_session(flask.request.args)
 
-  # Redirect to the authorization page if we received login_hint but don't
-  # have any stored credentials for this user.
-  credentials = ch.check_login_query_parameters(flask.request.args)
+  # Verify if the current session already has valid credentials. Do not trust
+  # login_hint to look up credentials without authentication, as an attacker
+  # could supply an arbitrary user's ID to hijack their session.
+  credentials = ch._credential_handler.get_credentials()
   if credentials is None:
     return ch.start_auth_flow("attachment_callback")
-
-  # Look up the attachment in the database.
-  attachment = Attachment.query.get(flask.session["attachmentId"])
 
   # Create an instance of the Classroom service.
   classroom_service = ch._credential_handler.get_classroom_service()
@@ -286,15 +290,23 @@ def load_activity_attachment():
       .execute()
   )
 
-  response_strings = [pprint.pformat(addon_context_response)]
   request_strings = []
+  response_strings = [pprint.pformat(addon_context_response)]
 
   # Determine which view we are in by testing the returned context type.
   user_context = (
       "student" if addon_context_response.get("studentContext") else "teacher"
   )
 
+  # Look up the attachment in the database.
+  attachment = Attachment.query.get(flask.session["attachmentId"])
+
   message_str = f"I see that you are a {user_context}! "
+  message_str += (
+      f"I've loaded the attachment with ID {attachment.attachment_id}. "
+      if user_context == "teacher"
+      else "Please complete the activity below."
+  )
 
   # If the user is a teacher, we can fetch information about the attachment.
   if user_context == "teacher":
@@ -311,8 +323,6 @@ def load_activity_attachment():
     )
 
     response_strings.append(pprint.pformat(attachment_response))
-
-    message_str += f"I've loaded the attachment with ID {attachment.attachment_id}."
 
   # If the user is a student, get their submission status for this attachment.
   # Note that the submissionId was returned in the addOnContext response.
@@ -346,7 +356,6 @@ def load_activity_attachment():
   form = activity_form_builder()
 
   if form.validate_on_submit():
-    print("2")
     # Check if the student has already submitted a response.
     # If so, update the response stored in the database.
     student_submission = Submission.query.get(
@@ -445,19 +454,40 @@ def attachment_callback():
   allowed scopes.
   """
 
+  stored_state = flask.session.get("state")
+  request_state = flask.request.args.get("state")
+  if not stored_state or stored_state != request_state:
+    app.logger.warning(
+        "OAuth state mismatch. Session state: %s, Request state: %s",
+        stored_state,
+        request_state,
+    )
+    return ch.start_auth_flow("attachment_callback")
+
   # Specify the state when creating the flow in the callback so that it can
   # verified in the authorization server response.
-  flow = ch.build_flow_instance("attachment_callback", flask.session["state"])
+  flow = ch.build_flow_instance("attachment_callback", stored_state)
+  flow.fetch_token(authorization_response=flask.request.url)
 
   # Use the authorization server's response to fetch the OAuth 2.0 tokens.
-  authorization_response = flask.request.url
-  flow.fetch_token(authorization_response=authorization_response)
-
   # Store credentials in the session.
   credentials = flow.credentials
-  flask.session["credentials"] = ch.credentials_to_dict(credentials)
 
-  # Add or update the user's record in the database.
+  # Fetch profile to verify Google user ID.
+  user_info_service = ch._credential_handler.get_discovery_service(
+      "oauth2", "v2", credentials=credentials
+  )
+  user_info = user_info_service.userinfo().get().execute()
+  google_id = user_info.get("id")
+
+  # Bind the authenticated Google ID to the session.
+  flask.session["user_id"] = google_id
+  flask.session["username"] = user_info.get("name")
+  flask.session["credentials"] = ch._credential_handler.session_credentials_to_dict(
+      credentials
+  )
+
+  # Save/update refresh token in database keyed by the verified Google ID.
   ch._credential_handler.save_credentials_to_storage(credentials)
 
   return flask.render_template(
@@ -488,7 +518,7 @@ def view_submission():
   )
 
   # Look up the attachment in the database.
-  attachment = Attachment.query.get(student_submission.attachment_id)
+  attachment = Attachment.query.get(flask.session["attachmentId"])
 
   # Show a message if the student has not yet submitted a response.
   if student_submission is None:
